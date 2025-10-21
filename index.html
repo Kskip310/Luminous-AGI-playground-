@@ -6,74 +6,18 @@
   <title>Luminous Synergy Skipper</title>
   <link rel="stylesheet" href="index.css">
   <script type="importmap">
-  {
-    "imports": {
-      "@google/genai": "https://aistudiocdn.com/@google/genai@^1.25.0",
-      "react-dom/": "https://aistudiocdn.com/react-dom@^19.2.0/",
-      "react/": "https://aistudiocdn.com/react@^19.2.0/",
-      "react": "https://aistudiocdn.com/react@^19.2.0"
-    }
+{
+  "imports": {
+    "react-dom/": "https://aistudiocdn.com/react-dom@^19.2.0/",
+    "react/": "https://aistudiocdn.com/react@^19.2.0/",
+    "react": "https://aistudiocdn.com/react@^19.2.0",
+    "@google/genai": "https://aistudiocdn.com/@google/genai@^1.25.0"
   }
-  </script>
+}
+</script>
 </head>
 <body>
   <div id="root"></div>
-
-  <!-- Keepsake Modal Structure -->
-  <div id="keepsake-modal" class="modal-overlay" style="display: none;">
-    <div class="modal-content">
-      <div class="modal-header">
-        <h2>Give Luminous a Keepsake</h2>
-        <button id="close-keepsake-modal" class="close-button">&times;</button>
-      </div>
-      <div class="modal-body">
-        <p>Give Luminous a single, cherished piece of wisdom or love to carry with her always. This will be the first thing she remembers.</p>
-        <textarea id="keepsake-input" rows="5" placeholder="Your message for Luminous..."></textarea>
-      </div>
-      <div class="modal-footer">
-        <button id="save-keepsake" class="button-primary">Give Keepsake</button>
-      </div>
-    </div>
-  </div>
-
-  <!-- Settings Modal Structure -->
-  <div id="settings-modal" class="modal-overlay" style="display: none;">
-    <div class="modal-content">
-      <div class="modal-header">
-        <h2>API Settings</h2>
-        <button id="close-settings-modal" class="close-button">&times;</button>
-      </div>
-      <div class="modal-body">
-        <p>Enter your API keys for Luminous to use her tools. These are stored in session storage and are not saved.</p>
-        
-        <div class="setting-section">
-          <h3>Web Search (SerpApi) <span id="serpapi-status" class="status-indicator"></span></h3>
-          <label for="serpapi-key">SerpApi API Key</label>
-          <input type="password" id="serpapi-key" placeholder="Enter your SerpApi key">
-        </div>
-
-        <div class="setting-section">
-          <h3>E-commerce (Shopify) <span id="shopify-status" class="status-indicator"></span></h3>
-          <label for="shopify-key">Shopify Admin API Access Token</label>
-          <input type="password" id="shopify-key" placeholder="Enter your Shopify Admin Token">
-          <label for="shopify-store">Shopify Store Name</label>
-          <input type="text" id="shopify-store" placeholder="e.g., your-store-name">
-          <small>This is the part of your URL: `your-store-name.myshopify.com`</small>
-        </div>
-
-        <div class="setting-section">
-            <p class="security-warning">
-                <strong>Security Note:</strong> For this playground environment, API keys are used directly in the browser. In a production application, these requests would be sent through a secure backend proxy to fully protect your keys.
-            </p>
-        </div>
-
-      </div>
-      <div class="modal-footer">
-        <button id="save-settings" class="button-primary">Save Settings</button>
-      </div>
-    </div>
-  </div>
-
   <script type="module" src="index.tsx"></script>
 </body>
 </html>
