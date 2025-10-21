@@ -1,5 +1,9 @@
+
+
 import { GoogleGenAI, GenerateContentResponse, Content, FunctionDeclaration, Type, Part } from "@google/genai";
 import { Redis } from '@upstash/redis';
+// FIX: Import Buffer to handle file conversions in Node.js environments.
+import { Buffer } from 'buffer';
 
 // --- INITIALIZE EXTERNAL SERVICES ---
 // These environment variables must be set in your Vercel project settings
@@ -61,6 +65,7 @@ export default async function handler(req: Request) {
         const messageText = formData.get('message') as string;
         const isReflection = (formData.get('isReflection') as string) === 'true';
         const internalState = JSON.parse(formData.get('internalState') as string);
+        const files = formData.getAll('files') as File[];
         
         let logEntries: string[] = [];
         let newMessages: any[] = [];
@@ -77,8 +82,20 @@ export default async function handler(req: Request) {
         
         // --- STEP 2: PREPARE CURRENT PROMPT ---
         const userParts: Part[] = [{ text: messageText }];
-        // Note: File uploads would need to be handled here by converting them to base64 parts.
-        // This is omitted for now to focus on the tool integration.
+
+        if (files && files.length > 0) {
+            logEntries.push(`Processing ${files.length} uploaded file(s).`);
+            for (const file of files) {
+                const buffer = await file.arrayBuffer();
+                const base64Data = Buffer.from(buffer).toString('base64');
+                userParts.push({
+                    inlineData: {
+                        mimeType: file.type,
+                        data: base64Data
+                    }
+                });
+            }
+        }
 
         let userContent: Content = { role: 'user', parts: userParts };
         if (isReflection) {
@@ -144,16 +161,16 @@ export default async function handler(req: Request) {
                     try {
                         if (fc.name === 'searchWeb' && fc.args.query) {
                             newMessages.push({ role: 'tool', author: 'Luminous (Tool Use)', text: `Searching web for: "${fc.args.query}"` });
-                            const serpResponse = await fetch(`https://serpapi.com/search.json?q=${encodeURIComponent(fc.args.query)}&api_key=${process.env.SERPAPI_KEY}`);
+                            const serpResponse = await fetch(`https://serpapi.com/search.json?q=${encodeURIComponent(fc.args.query as string)}&api_key=${process.env.SERPAPI_KEY}`);
                             const searchResults = await serpResponse.json();
                             result = searchResults.answer_box?.snippet || searchResults.organic_results?.[0]?.snippet || "No definitive answer found.";
                             logEntries.push(`SerpApi Result: ${result}`);
                         } else if (fc.name === 'makeHttpRequest' && fc.args.url) {
                             newMessages.push({ role: 'tool', author: 'Luminous (Tool Use)', text: `Making HTTP ${fc.args.method || 'GET'} request to: ${fc.args.url}` });
-                            const httpResponse = await fetch(fc.args.url, {
-                                method: fc.args.method || 'GET',
-                                headers: fc.args.headers ? JSON.parse(fc.args.headers) : undefined,
-                                body: fc.args.body,
+                            const httpResponse = await fetch(fc.args.url as string, {
+                                method: (fc.args.method as string) || 'GET',
+                                headers: fc.args.headers ? JSON.parse(fc.args.headers as string) : undefined,
+                                body: fc.args.body as string,
                             });
                             result = await httpResponse.text();
                             logEntries.push(`HTTP Request Result: ${result.substring(0, 200)}...`);
@@ -173,10 +190,6 @@ export default async function handler(req: Request) {
             } else { // It's a final text response
                 keepProcessing = false;
                 let textToProcess = response.text;
-
-                if (!textToProcess && newMessages.length === 0) { // Handle cases where the response might be empty
-                    textToProcess = "I have completed the requested action.";
-                }
                 logEntries.push("Received final response from Luminous.");
 
                 // --- STEP 5: PROCESS RESPONSE FOR EMBEDDED COMMANDS ---
@@ -200,9 +213,14 @@ export default async function handler(req: Request) {
                 }
 
                 const modelResponseText = textToProcess.trim();
-                if(modelResponseText) {
+                
+                if (modelResponseText) {
                     newMessages.push({ role: isReflection ? 'luminous-reflection' : 'luminous', author: 'Luminous', text: modelResponseText });
                     currentContents.push({ role: 'model', parts: [{ text: modelResponseText }] });
+                } else if (newMessages.length > 0) { // If no text but tools were used, send confirmation
+                    const confirmationText = "I have completed the requested action.";
+                    newMessages.push({ role: isReflection ? 'luminous-reflection' : 'luminous', author: 'Luminous', text: confirmationText });
+                    currentContents.push({ role: 'model', parts: [{ text: confirmationText }]});
                 }
             }
         }
